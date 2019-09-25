@@ -1,0 +1,179 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>四川网格系统首页</title>
+</head>
+<style>
+    .returnBtn {
+        width: 52px;
+        height: 30px;
+        line-height: 30px;
+        border: 1px solid #26c5e0;
+        text-align: center;
+        color: #26c5e0;
+        font-size: 14px;
+        display: inline-block;
+        z-index: 100;
+        position: absolute;
+        right: 10px;
+        top: 10px;
+    }
+
+    .returnBtn:hover {
+        background: #26c5e0;
+        color: #ffffff;
+    }
+</style>
+<script type="text/javascript" src="js/jquery-1.8.3-min.js"></script>
+<script src="js/echarts.js"></script>
+<script src="js/chartMap.js"></script>
+<div class="indexGrid">
+    <div class="indexLeft">
+        <div class="indexLeftTop cf">
+            <div class="indexMap">
+                <div id="mapDiv">
+                    <div id="main">
+                        <div id="mainBody" class="mainBody cf">
+                            <a href="javascript:;" id="returnBtn" class="returnBtn">返回</a>
+                            <div id="mapMain" style="height:100%">
+                            </div>
+                        </div>
+                    </div>
+                    <div id="conditionDiv"></div>
+                    <div id="detailDlg"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function () {
+        //返回按钮点击事件
+        $("#orgReturn").click(function () {
+            setTimeout(function () {
+                orgReturn();
+            }, 300);
+        });
+        function resetContentWh() {
+            $("#contentDiv").css({
+                "width": "100%",
+                "height": ($(window).height() - 125) + "px",
+                "position": "relative"
+            });
+            setTimeout(function () {
+                myChart.resize();
+            }, 350);
+        };
+        resetContentWh();
+        $(window).resize(resetContentWh);
+    });
+
+
+    /**
+     * 切换调用方法
+     */
+    function getOrganizationIdByNamesAndDates() {
+
+    }
+
+    var mapCenter = {};//地图中心点加载变量
+    var mapData = [];//地图数据加载变量
+    var markData = [];//地图闪动数据加载变量
+    //用于判断地图目前处于某级城市（市、县、乡镇）  1处于市  2县   3乡镇
+    var changeCityNum = 1;
+    var mapTypeToUserOrg = "四川";
+    var initMaxNum = 0;
+    var markOrgNames = "";//记录地图闪动图标组织机构名称，用于清除闪动特效
+    //传到后台的组织机构名称cityCenterChange
+    var organizationName = '四川省';
+    //当前组织机构名称
+    var nowOrgName = "四川省";
+
+    //判断返回值是否有异常
+    function mapErrorMessage(responseData) {
+        if (typeof responseData == "string") {
+            $.messageBox({
+                message: responseData,
+                level: "error"
+            });
+            //抛出异常阻止后面的js
+            return "数据错误！";
+        }
+    }
+
+    //后台报错后，将组织机构还原出错前
+    function returnError(orgName) {
+        organizationName = organizationName.replace("," + orgName, "");
+    }
+
+    //地图数据加载等待效果
+    function mapLoadingOption() {
+        myChart.showLoading({
+            text: '数据加载中...',
+            effect: 'spin',
+            textStyle: {
+                fontSize: 20
+            }
+        });
+    }
+
+    //给organizationName赋值
+    function orgNameAssignment(param) {
+        if (changeCityNum == 1) {//选中市
+            //判断是否有其它市区，没有就赋值，有就覆盖
+            if (organizationName.indexOf(",") == -1) {
+                organizationName += "," + param.name;
+            } else {
+                organizationName = organizationName.substring(0, (organizationName.indexOf(",") + 1)) + param.name;
+            }
+        } else if (changeCityNum == 2) {//选中县
+            var splitNames = organizationName.split(",");
+            //判断是否存在其它区县，没有复制，有就覆盖
+            if (splitNames.length == 2) {
+                organizationName += "," + param.name;
+            } else {
+                splitNames[2] = param.name;
+                organizationName = splitNames + "";
+            }
+        } else {//选中乡镇
+            var splitNames = organizationName.split(",");
+            //判断是否存在其它乡镇，没有复制，有就覆盖
+            organizationName += "," + param.name;
+        }
+    }
+
+
+
+    //地图中心点更改
+    function cityCenterChange(cityName) {
+        mapCenter.length = 0;//将地图中心点数据清空
+        if (cityName == "四川" || cityName == "四川省") {
+            mapCenter = {
+                "成都市": [104.06, 30.67],
+                "广安市": [106.61, 30.48],
+                "德阳市": [104.37, 31.13],
+                "甘孜藏族自治州": [99.96, 31.64],
+                "攀枝花市": [101.72, 26.58],
+                "凉山彝族自治州": [102.27, 27.9],
+                "阿坝藏族羌族自治州": [102.22, 31.9],
+                "雅安市": [103.0, 29.98],
+                "乐山市": [103.77, 29.57],
+                "宜宾市": [104.62, 28.77],
+                "泸州市": [105.43, 28.87],
+                "自贡市": [104.78, 29.35],
+                "内江市": [105.05, 29.58],
+                "眉山市": [103.83, 30.05],
+                "资阳市": [104.65, 30.12],
+                "遂宁市": [105.57, 30.52],
+                "南充市": [106.08, 30.78],
+                "达州市": [107.5, 31.22],
+                "巴中市": [106.77, 31.85],
+                "广元市": [105.83, 32.43],
+                "绵阳市": [104.73, 31.47]
+            };
+        }
+    }
+
+
+</script>
+</html>
